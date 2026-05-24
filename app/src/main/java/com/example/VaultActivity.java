@@ -322,8 +322,8 @@ public class VaultActivity extends AppCompatActivity {
         public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
             DatabaseHelper.VaultItem item = list.get(position);
 
-            // Load decoded bitmap directly from private app sandbox (not exposed to system scanners)
-            Bitmap bitmap = BitmapFactory.decodeFile(item.storedPath);
+            // Load decoded bitmap with safe thumbnail downsampling to prevent OutOfMemory and keep scrolling smooth
+            Bitmap bitmap = decodeSampledBitmapFromFile(item.storedPath, 150, 150);
             if (bitmap != null) {
                 holder.ivVaultThumbnail.setImageBitmap(bitmap);
             } else {
@@ -335,6 +335,38 @@ public class VaultActivity extends AppCompatActivity {
                     clickListener.onDeleteClicked(item);
                 }
             });
+        }
+
+        private Bitmap decodeSampledBitmapFromFile(String path, int reqWidth, int reqHeight) {
+            try {
+                final BitmapFactory.Options options = new BitmapFactory.Options();
+                options.inJustDecodeBounds = true;
+                BitmapFactory.decodeFile(path, options);
+
+                options.inSampleSize = calculateInSampleSize(options, reqWidth, reqHeight);
+
+                options.inJustDecodeBounds = false;
+                return BitmapFactory.decodeFile(path, options);
+            } catch (Throwable e) {
+                e.printStackTrace();
+                return null;
+            }
+        }
+
+        private int calculateInSampleSize(BitmapFactory.Options options, int reqWidth, int reqHeight) {
+            final int height = options.outHeight;
+            final int width = options.outWidth;
+            int inSampleSize = 1;
+
+            if (height > reqHeight || width > reqWidth) {
+                final int halfHeight = height / 2;
+                final int halfWidth = width / 2;
+
+                while ((halfHeight / inSampleSize) >= reqHeight && (halfWidth / inSampleSize) >= reqWidth) {
+                    inSampleSize *= 2;
+                }
+            }
+            return inSampleSize;
         }
 
         @Override

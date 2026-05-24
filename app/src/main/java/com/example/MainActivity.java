@@ -95,7 +95,6 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 if (progress < 15) {
-                    seekBar.setProgress(15);
                     progress = 15; // Set a minimum opacity of 15% to avoid absolute invisibility
                 }
                 tvOpacityLabel.setText("Bubble Opacity: " + progress + "%");
@@ -107,7 +106,11 @@ public class MainActivity extends AppCompatActivity {
             public void onStartTrackingTouch(SeekBar seekBar) {}
 
             @Override
-            public void onStopTrackingTouch(SeekBar seekBar) {}
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                if (seekBar.getProgress() < 15) {
+                    seekBar.setProgress(15);
+                }
+            }
         });
 
         // Size Slider Listener

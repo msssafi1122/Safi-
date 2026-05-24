@@ -277,7 +277,13 @@ public class FloatingService extends Service {
                     case MotionEvent.ACTION_MOVE:
                         bubbleParams.x = initialX + (int) (event.getRawX() - initialTouchX);
                         bubbleParams.y = initialY + (int) (event.getRawY() - initialTouchY);
-                        windowManager.updateViewLayout(bubbleView, bubbleParams);
+                        try {
+                            if (bubbleView != null && bubbleView.isAttachedToWindow()) {
+                                windowManager.updateViewLayout(bubbleView, bubbleParams);
+                            }
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
                         return true;
 
                     case MotionEvent.ACTION_UP:
@@ -312,7 +318,13 @@ public class FloatingService extends Service {
         }
 
         bubbleParams.x = targetX;
-        windowManager.updateViewLayout(bubbleView, bubbleParams);
+        try {
+            if (bubbleView != null && bubbleView.isAttachedToWindow()) {
+                windowManager.updateViewLayout(bubbleView, bubbleParams);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     // ============================================
