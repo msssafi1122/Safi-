@@ -159,16 +159,30 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void updateServiceUIStatus() {
-        if (isServiceRunning(FloatingService.class)) {
-            statusText.setText("Service Status: running");
-            statusText.setTextColor(0xFF33FF55); // Green color
-            btnToggleService.setText("Stop Floating Service");
-            btnToggleService.setBackgroundColor(0xFFFF3366); // Red color
-        } else {
-            statusText.setText("Service Status: OFF");
-            statusText.setTextColor(0xFFFF3366); // Red color
-            btnToggleService.setText("Start Floating Service");
-            btnToggleService.setBackgroundColor(0xFF03DAC6); // Teal color
+        try {
+            if (isServiceRunning(FloatingService.class)) {
+                statusText.setText("Service Status: running");
+                statusText.setTextColor(0xFF33FF55); // Green color
+                btnToggleService.setText("Stop Floating Service");
+                if (btnToggleService instanceof com.google.android.material.button.MaterialButton) {
+                    ((com.google.android.material.button.MaterialButton) btnToggleService).setBackgroundTintList(
+                            android.content.res.ColorStateList.valueOf(0xFFFF3366)); // Red color
+                } else {
+                    btnToggleService.setBackgroundColor(0xFFFF3366);
+                }
+            } else {
+                statusText.setText("Service Status: OFF");
+                statusText.setTextColor(0xFFFF3366); // Red color
+                btnToggleService.setText("Start Floating Service");
+                if (btnToggleService instanceof com.google.android.material.button.MaterialButton) {
+                    ((com.google.android.material.button.MaterialButton) btnToggleService).setBackgroundTintList(
+                            android.content.res.ColorStateList.valueOf(0xFF03DAC6)); // Teal color
+                } else {
+                    btnToggleService.setBackgroundColor(0xFF03DAC6);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
@@ -188,10 +202,20 @@ public class MainActivity extends AppCompatActivity {
 
     private void startFloatingService() {
         Intent intent = new Intent(this, FloatingService.class);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            startForegroundService(intent);
-        } else {
-            startService(intent);
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(intent);
+            } else {
+                startService(intent);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            try {
+                startService(intent);
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                Toast.makeText(this, "Could not start floating service: " + ex.getMessage(), Toast.LENGTH_LONG).show();
+            }
         }
         // Give service a split-second to launch, then refresh
         statusText.postDelayed(this::updateServiceUIStatus, 300);
@@ -199,7 +223,11 @@ public class MainActivity extends AppCompatActivity {
 
     private void stopFloatingService() {
         Intent intent = new Intent(this, FloatingService.class);
-        stopService(intent);
+        try {
+            stopService(intent);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         statusText.postDelayed(this::updateServiceUIStatus, 300);
     }
 
@@ -207,26 +235,16 @@ public class MainActivity extends AppCompatActivity {
         if (isServiceRunning(FloatingService.class)) {
             Intent intent = new Intent(this, FloatingService.class);
             intent.setAction("ACTION_CONFIG_CHANGED");
-            startService(intent);
+            try {
+                startService(intent);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
     }
 
     private boolean isServiceRunning(Class<?> serviceClass) {
-        ActivityManager manager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
-        if (manager == null) return false;
-        try {
-            List<ActivityManager.RunningServiceInfo> services = manager.getRunningServices(Integer.MAX_VALUE);
-            if (services != null) {
-                for (ActivityManager.RunningServiceInfo service : services) {
-                    if (service != null && service.service != null && serviceClass.getName().equals(service.service.getClassName())) {
-                        return true;
-                    }
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return false;
+        return FloatingService.isRunning;
     }
 
     @Override

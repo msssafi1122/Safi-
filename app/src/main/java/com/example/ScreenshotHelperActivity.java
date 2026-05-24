@@ -70,12 +70,32 @@ public class ScreenshotHelperActivity extends AppCompatActivity {
 
         if (requestCode == REQUEST_CODE_SCREENSHOT) {
             if (resultCode == RESULT_OK && data != null) {
-                // Instatiate projection
-                mediaProjection = projectionManager.getMediaProjection(resultCode, data);
-                if (mediaProjection != null) {
-                    takeScreenshot();
-                } else {
-                    Toast.makeText(this, "Capture permission denied", Toast.LENGTH_SHORT).show();
+                try {
+                    // Notify/promote FloatingService to FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION before instantiating MediaProjection
+                    try {
+                        Intent serviceIntent = new Intent(this, FloatingService.class);
+                        serviceIntent.setAction("ACTION_START_PROJECTION");
+                        startService(serviceIntent);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+
+                    // A brief 100ms pause to ensure Android OS recognizes the foreground type transition has begun
+                    try {
+                        Thread.sleep(100);
+                    } catch (InterruptedException ignored) {}
+
+                    // Instatiate projection safely
+                    mediaProjection = projectionManager.getMediaProjection(resultCode, data);
+                    if (mediaProjection != null) {
+                        takeScreenshot();
+                    } else {
+                        Toast.makeText(this, "Capture permission denied", Toast.LENGTH_SHORT).show();
+                        finish();
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    Toast.makeText(this, "Media projection construction failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
                     finish();
                 }
             } else {
@@ -110,6 +130,11 @@ public class ScreenshotHelperActivity extends AppCompatActivity {
                     try {
                         image = reader.acquireLatestImage();
                         if (image != null) {
+                            // Unregister listener immediately to ensure we only process a single frame
+                            try {
+                                imageReader.setOnImageAvailableListener(null, null);
+                            } catch (Exception ignored) {}
+
                             // Extract bytes and generate Bitmap
                             Image.Plane[] planes = image.getPlanes();
                             ByteBuffer buffer = planes[0].getBuffer();
@@ -197,6 +222,14 @@ public class ScreenshotHelperActivity extends AppCompatActivity {
         if (mediaProjection != null) {
             mediaProjection.stop();
             mediaProjection = null;
+        }
+        // Notify FloatingService to demote from media projection
+        try {
+            Intent serviceIntent = new Intent(this, FloatingService.class);
+            serviceIntent.setAction("ACTION_STOP_PROJECTION");
+            startService(serviceIntent);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
         finish();
     }

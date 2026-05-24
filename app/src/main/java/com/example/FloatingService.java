@@ -46,6 +46,8 @@ import java.util.concurrent.Executors;
 
 public class FloatingService extends Service {
 
+    public static volatile boolean isRunning = false;
+
     private static final int NOTIFICATION_ID = 2002;
     private static final String CHANNEL_ID = "FloatingSafiChannel";
 
@@ -99,16 +101,7 @@ public class FloatingService extends Service {
     private Button btnDeleteNote;
     private DatabaseHelper.NoteItem activeEditingNote = null;
 
-    @Override
-    public void onCreate() {
-        super.onCreate();
-
-        prefs = getSharedPreferences("FloatingSafiPrefs", MODE_PRIVATE);
-        dbHelper = new DatabaseHelper(this);
-        windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
-        threadExecutor = Executors.newSingleThreadExecutor();
-
-        // 1. Establish O+ Foreground notification channels
+    private void startForegroundSpecialUse() {
         createNotificationChannel();
         Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
                 .setContentTitle("Floating SAFI")
@@ -116,11 +109,58 @@ public class FloatingService extends Service {
                 .setSmallIcon(android.R.drawable.ic_dialog_info)
                 .setPriority(NotificationCompat.PRIORITY_MIN)
                 .build();
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            startForeground(NOTIFICATION_ID, notification, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION);
-        } else {
-            startForeground(NOTIFICATION_ID, notification);
+        try {
+            if (Build.VERSION.SDK_INT >= 34) {
+                startForeground(NOTIFICATION_ID, notification, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE);
+            } else {
+                // Under API 34, a standard foreground service does not require declaring a specific type on startup
+                startForeground(NOTIFICATION_ID, notification);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            try {
+                startForeground(NOTIFICATION_ID, notification);
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
         }
+    }
+
+    private void promoteToMediaProjection() {
+        Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
+                .setContentTitle("Floating SAFI")
+                .setContentText("Screen capture in progress...")
+                .setSmallIcon(android.R.drawable.ic_dialog_info)
+                .setPriority(NotificationCompat.PRIORITY_MIN)
+                .build();
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                startForeground(NOTIFICATION_ID, notification, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION);
+            } else {
+                startForeground(NOTIFICATION_ID, notification);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            try {
+                startForeground(NOTIFICATION_ID, notification);
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        }
+    }
+
+    @Override
+    public void onCreate() {
+        super.onCreate();
+        isRunning = true;
+
+        prefs = getSharedPreferences("FloatingSafiPrefs", MODE_PRIVATE);
+        dbHelper = new DatabaseHelper(this);
+        windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
+        threadExecutor = Executors.newSingleThreadExecutor();
+
+        // 1. Establish O+ Foreground notification channels
+        startForegroundSpecialUse();
 
         // 2. Load and paint floating circular bubble overlay
         initFloatingBubble();
@@ -128,9 +168,16 @@ public class FloatingService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        if (intent != null && "ACTION_CONFIG_CHANGED".equals(intent.getAction())) {
-            // Apply size/opacity on-the-fly
-            updateBubbleVisualPreferences();
+        if (intent != null) {
+            String action = intent.getAction();
+            if ("ACTION_CONFIG_CHANGED".equals(action)) {
+                // Apply size/opacity on-the-fly
+                updateBubbleVisualPreferences();
+            } else if ("ACTION_START_PROJECTION".equals(action)) {
+                promoteToMediaProjection();
+            } else if ("ACTION_STOP_PROJECTION".equals(action)) {
+                startForegroundSpecialUse();
+            }
         }
         return START_NOT_STICKY;
     }
@@ -175,10 +222,15 @@ public class FloatingService extends Service {
         bubbleParams.x = 200;
         bubbleParams.y = 400;
 
-        windowManager.addView(bubbleView, bubbleParams);
-        updateBubbleVisualPreferences();
-
-        setupBubbleTouchListener();
+        try {
+            windowManager.addView(bubbleView, bubbleParams);
+            updateBubbleVisualPreferences();
+            setupBubbleTouchListener();
+        } catch (Exception e) {
+            e.printStackTrace();
+            Toast.makeText(this, "Failed to display floating bubble! Please ensure Overlay permission is granted.", Toast.LENGTH_LONG).show();
+            stopSelf();
+        }
     }
 
     private void updateBubbleVisualPreferences() {
@@ -317,6 +369,14 @@ public class FloatingService extends Service {
 
             menuView.findViewById(R.id.btnMenuScreenshot).setOnClickListener(v -> {
                 hideMenuWindow();
+                // Promote service to media projection type immediately before starting ScreenshotHelperActivity
+                try {
+                    Intent serviceIntent = new Intent(FloatingService.this, FloatingService.class);
+                    serviceIntent.setAction("ACTION_START_PROJECTION");
+                    startService(serviceIntent);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
                 Intent intent = new Intent(FloatingService.this, ScreenshotHelperActivity.class);
                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 startActivity(intent);
@@ -332,14 +392,23 @@ public class FloatingService extends Service {
         }
 
         if (!isMenuShowing) {
-            windowManager.addView(menuView, menuParams);
-            isMenuShowing = true;
+            try {
+                windowManager.addView(menuView, menuParams);
+                isMenuShowing = true;
+            } catch (Exception e) {
+                e.printStackTrace();
+                Toast.makeText(this, "Failed to display multitasking menu.", Toast.LENGTH_SHORT).show();
+            }
         }
     }
 
     private void hideMenuWindow() {
         if (isMenuShowing && menuView != null) {
-            windowManager.removeView(menuView);
+            try {
+                windowManager.removeView(menuView);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
             isMenuShowing = false;
         }
     }
@@ -412,14 +481,23 @@ public class FloatingService extends Service {
                 }
             });
 
-            windowManager.addView(chatView, chatParams);
-            isChatShowing = true;
+            try {
+                windowManager.addView(chatView, chatParams);
+                isChatShowing = true;
+            } catch (Exception e) {
+                e.printStackTrace();
+                Toast.makeText(this, "Failed to display AI Chat.", Toast.LENGTH_SHORT).show();
+            }
         }
     }
 
     private void hideChatWindow() {
         if (isChatShowing && chatView != null) {
-            windowManager.removeView(chatView);
+            try {
+                windowManager.removeView(chatView);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
             chatView = null;
             isChatShowing = false;
         }
@@ -453,10 +531,16 @@ public class FloatingService extends Service {
 
             final String finalReply = reply;
             new Handler(Looper.getMainLooper()).post(() -> {
-                tvChatTypingIndicator.setVisibility(View.GONE);
-                chatHistoryList.add(new ChatAdapter.ChatMessage(finalReply, false));
-                chatAdapter.notifyItemInserted(chatHistoryList.size() - 1);
-                rvChatHistory.scrollToPosition(chatHistoryList.size() - 1);
+                if (isChatShowing && chatView != null) {
+                    if (tvChatTypingIndicator != null) {
+                        tvChatTypingIndicator.setVisibility(View.GONE);
+                    }
+                    if (chatHistoryList != null && chatAdapter != null && rvChatHistory != null) {
+                        chatHistoryList.add(new ChatAdapter.ChatMessage(finalReply, false));
+                        chatAdapter.notifyItemInserted(chatHistoryList.size() - 1);
+                        rvChatHistory.scrollToPosition(chatHistoryList.size() - 1);
+                    }
+                }
             });
         });
     }
@@ -547,14 +631,23 @@ public class FloatingService extends Service {
             calcView.findViewById(R.id.btnCalcClose).setOnClickListener(v -> hideCalcWindow());
             calcView.findViewById(R.id.calcHeader).setOnTouchListener(new DragTouchListener(calcParams, calcView));
 
-            windowManager.addView(calcView, calcParams);
-            isCalcShowing = true;
+            try {
+                windowManager.addView(calcView, calcParams);
+                isCalcShowing = true;
+            } catch (Exception e) {
+                e.printStackTrace();
+                Toast.makeText(this, "Failed to display Calculator.", Toast.LENGTH_SHORT).show();
+            }
         }
     }
 
     private void hideCalcWindow() {
         if (isCalcShowing && calcView != null) {
-            windowManager.removeView(calcView);
+            try {
+                windowManager.removeView(calcView);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
             calcView = null;
             isCalcShowing = false;
         }
@@ -793,14 +886,23 @@ public class FloatingService extends Service {
                 }
             });
 
-            windowManager.addView(notesView, notesParams);
-            isNotesShowing = true;
+            try {
+                windowManager.addView(notesView, notesParams);
+                isNotesShowing = true;
+            } catch (Exception e) {
+                e.printStackTrace();
+                Toast.makeText(this, "Failed to display Notes.", Toast.LENGTH_SHORT).show();
+            }
         }
     }
 
     private void hideNotesWindow() {
         if (isNotesShowing && notesView != null) {
-            windowManager.removeView(notesView);
+            try {
+                windowManager.removeView(notesView);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
             notesView = null;
             isNotesShowing = false;
         }
@@ -964,6 +1066,7 @@ public class FloatingService extends Service {
     @Override
     public void onDestroy() {
         super.onDestroy();
+        isRunning = false;
         // Remove all floating layouts to prevent raw window leakage overlay warnings
         hideMenuWindow();
         hideChatWindow();
@@ -971,7 +1074,11 @@ public class FloatingService extends Service {
         hideNotesWindow();
 
         if (bubbleView != null) {
-            windowManager.removeView(bubbleView);
+            try {
+                windowManager.removeView(bubbleView);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
             bubbleView = null;
         }
 
