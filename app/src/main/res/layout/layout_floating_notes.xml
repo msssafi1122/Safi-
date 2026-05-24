@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ViewAnimator xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/notesViewAnimator"
+    android:layout_width="320dp"
+    android:layout_height="400dp"
+    android:background="@drawable/bg_glassmorphism"
+    android:padding="8dp"
+    android:elevation="12dp">
+
+    <!-- Screen 0: Stored Notes List View -->
+    <LinearLayout
+        android:id="@+id/layoutNotesList"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <!-- Header bar -->
+        <RelativeLayout
+            android:id="@+id/notesListHeader"
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:background="#15FFFFFF"
+            android:padding="4dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="SAFI Quick Notes"
+                android:textColor="#FFFFFF"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:layout_centerVertical="true"
+                android:layout_marginStart="8dp" />
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:layout_alignParentEnd="true"
+                android:layout_centerVertical="true"
+                android:orientation="horizontal">
+
+                <Button
+                    android:id="@+id/btnCreateNote"
+                    style="@style/Widget.MaterialComponents.Button.TextButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:text="+ ADD"
+                    android:textColor="#03DAC6"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:padding="0dp" />
+
+                <ImageButton
+                    android:id="@+id/btnNotesClose"
+                    android:layout_width="36dp"
+                    android:layout_height="match_parent"
+                    android:background="@android:color/transparent"
+                    android:src="@android:drawable/ic_menu_close_clear_cancel"
+                    android:tint="#FF3366"
+                    android:contentDescription="Close Notes Window" />
+            </LinearLayout>
+        </RelativeLayout>
+
+        <!-- Search Bar -->
+        <EditText
+            android:id="@+id/etNoteSearch"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:layout_marginBottom="4dp"
+            android:background="#15FFFFFF"
+            android:hint="Search notes..."
+            android:textColorHint="#55FFFFFF"
+            android:textColor="#FFFFFF"
+            android:textSize="13sp"
+            android:padding="8dp"
+            android:singleLine="true"
+            android:inputType="text" />
+
+        <!-- Empty text indicator -->
+        <TextView
+            android:id="@+id/tvNoNotes"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="No notes recorded.\nHit + ADD to write a note."
+            android:textColor="#55FFFFFF"
+            android:textSize="13sp" />
+
+        <!-- Stored notes recycler -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvNotesHistory"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:padding="2dp"
+            android:visibility="gone" />
+
+    </LinearLayout>
+
+    <!-- Screen 1: Compose / Edit Note Page -->
+    <LinearLayout
+        android:id="@+id/layoutNotesEditor"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <!-- Editor Header -->
+        <RelativeLayout
+            android:id="@+id/notesEditorHeader"
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:background="#15FFFFFF"
+            android:padding="4dp">
+
+            <TextView
+                android:id="@+id/tvEditorTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Create Note"
+                android:textColor="#FFFFFF"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:layout_centerVertical="true"
+                android:layout_marginStart="8dp" />
+
+            <ImageButton
+                android:id="@+id/btnNoteEditorBack"
+                android:layout_width="36dp"
+                android:layout_height="match_parent"
+                android:background="@android:color/transparent"
+                android:src="@android:drawable/ic_media_previous"
+                android:tint="#FFFFFF"
+                android:layout_alignParentEnd="true"
+                android:contentDescription="Undo compose window" />
+        </RelativeLayout>
+
+        <!-- Stored note fields -->
+        <EditText
+            android:id="@+id/etNoteTitleInput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:hint="Title"
+            android:textColorHint="#50FFFFFF"
+            android:textColor="#FFFFFF"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            android:background="#10FFFFFF"
+            android:padding="10dp"
+            android:singleLine="true" />
+
+        <EditText
+            android:id="@+id/etNoteContentInput"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:layout_marginTop="8dp"
+            android:hint="Content..."
+            android:textColorHint="#50FFFFFF"
+            android:textColor="#FFFFFF"
+            android:textSize="13sp"
+            android:background="#10FFFFFF"
+            android:gravity="top"
+            android:padding="10dp"
+            android:inputType="textMultiLine" />
+
+        <!-- Command controls (Pin/Delete/Save) -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginTop="6dp">
+
+            <CheckBox
+                android:id="@+id/cbPinNote"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="PIN"
+                android:textColor="#FFB300"
+                android:textSize="12sp"
+                android:buttonTint="#FFB300" />
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1" />
+
+            <Button
+                android:id="@+id/btnDeleteNote"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="DELETE"
+                android:textColor="#FF3366"
+                android:textSize="12sp"
+                android:visibility="gone" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnSaveNote"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="SAVE"
+                android:textColor="#121212"
+                android:textStyle="bold"
+                android:textSize="12sp"
+                app:backgroundTint="#03DAC6"
+                app:cornerRadius="6dp" />
+        </LinearLayout>
+    </LinearLayout>
+</ViewAnimator>

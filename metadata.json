@@ -1,0 +1,6 @@
+{
+  "name": "Floating SAFI",
+  "description": "Floating overlay utility app with AI Assistant, Scientific Calculator, Notes, Screenshots, and a Hidden Cryptographic Vault.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
