@@ -272,13 +272,23 @@ public class VaultActivity extends AppCompatActivity {
 
     private String getRealPathFromURI(Uri contentUri) {
         String[] proj = { MediaStore.Images.Media.DATA };
-        Cursor cursor = getContentResolver().query(contentUri, proj, null, null, null);
-        if (cursor == null) return "Unknown";
-        int column_index = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
-        cursor.moveToFirst();
-        String path = cursor.getString(column_index);
-        cursor.close();
-        return path;
+        Cursor cursor = null;
+        try {
+            cursor = getContentResolver().query(contentUri, proj, null, null, null);
+            if (cursor != null && cursor.moveToFirst()) {
+                int column_index = cursor.getColumnIndex(MediaStore.Images.Media.DATA);
+                if (column_index != -1) {
+                    return cursor.getString(column_index);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+        }
+        return "Unknown";
     }
 
     // ==========================================

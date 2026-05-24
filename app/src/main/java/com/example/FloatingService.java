@@ -473,7 +473,7 @@ public class FloatingService extends Service {
 
         // Native JSONObject formulation
         JSONObject requestBody = new JSONObject();
-        requestBody.put("model", "model-openai/gpt-oss-120b");
+        requestBody.put("model", "llama-3.3-70b-versatile");
 
         JSONArray messagesArray = new JSONArray();
         JSONObject messageObj = new JSONObject();
